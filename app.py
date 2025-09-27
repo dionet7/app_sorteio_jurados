@@ -24,6 +24,46 @@ def cidades_da_comarca():
 # Configurações iniciais
 
 st.set_page_config(page_title="Sistema de Sorteio de Jurados", layout="wide")
+
+def add_footer_suporte():
+    st.markdown(
+        """
+        <style>
+        .footer-suporte {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #ffffffcc;
+            backdrop-filter: blur(4px);
+            border-top: 1px solid #eaeaea;
+            padding: 8px 14px;
+            font-size: 14px;
+            color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            z-index: 9999;
+        }
+        .footer-suporte a {
+            text-decoration: none;
+            color: #25D366; /* cor “WhatsApp” */
+            font-weight: 600;
+        }
+        .footer-spacer { height: 48px; } /* evita que o footer cubra botões no fim da página */
+        </style>
+
+        <div class="footer-spacer"></div>
+        <div class="footer-suporte">
+            Dúvidas, sugestões e suporte:
+            <strong>Dione de Oliveira</strong> —
+            <a href="https://wa.me/5589999744547" target="_blank">📲 WhatsApp (89) 99974-4547</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+add_footer_suporte()
+
 # ==== LOGIN SIMPLES COM HASHING DE SENHA ====
 usuarios_validos = {
     "admin": hashlib.sha256("1234".encode()).hexdigest(),
@@ -68,7 +108,7 @@ if not st.session_state.autenticado:
 
 st.title("🎯 Sistema de Sorteio de Jurados")
 
-tabs = st.tabs(["📝 Cadastro", "🎲 Sorteio", "👥 Visualização", "⚙️ Atualização", "📄 Relatório PDF"])
+tabs = st.tabs(["📝 Cadastro", "🎲 Sorteio", "👥 Visualização", "⚙️ Atualização", "📄 Relatório PDF", "❓ Ajuda"])
 
 if not comarca_existe():
     st.warning("⚠️ Nenhuma comarca cadastrada. Cadastre a comarca para começar.")
@@ -558,3 +598,111 @@ with tabs[4]:
                 file_name=nome_pdf,
                 mime="application/pdf"
             )
+
+with tabs[5]:
+    st.header("❓ Ajuda — Guia Rápido do Sistema")
+
+    # opcional: mostra comarca atual, se existir
+    try:
+        from database import obter_comarca
+        c = obter_comarca()
+        nome_comarca = c.nome if c else "Não configurada"
+        cidades = [x.strip() for x in (c.cidades.split(",") if c and c.cidades else []) if x.strip()]
+    except Exception:
+        nome_comarca, cidades = "—", []
+
+    st.markdown(f"**Comarca atual:** {nome_comarca}")
+    if cidades:
+        st.caption("Cidades cadastradas: " + ", ".join(cidades))
+
+    with st.expander("🔐 1) Login"):
+        st.markdown("""
+- Informe **usuário e senha**. Após logar, o nome aparece na **sidebar** com opção **Sair**.
+- O acesso é obrigatório para ver as abas do sistema.
+        """)
+
+    with st.expander("🏁 2) Primeiro acesso (Configuração da Comarca)"):
+        st.markdown("""
+- Se não houver comarca, será exibido um formulário para **cadastrar o nome** e a(s) **cidade(s)** (separe por vírgula).
+- Essas cidades alimentam os **selects** (Cadastro, Visualização, Sorteio e Importação por cidade).
+        """)
+
+    with st.expander("📝 3) Cadastro manual de jurados"):
+        st.markdown("""
+- Preencha **Nome**, **Endereço**, **Número**, **Bairro**, **Cidade** e **Profissão (opcional)**.
+- O botão **Cadastrar** insere o jurado no banco.
+        """)
+
+    with st.expander("📥 4) Importação de jurados (Atualização)"):
+        st.markdown("""
+- **Modo Arquivo único**:
+  - **Excel (.xlsx)** com colunas: `Nome, Endereço, Número, Bairro, Cidade` e opcional `Profissão`.
+  - **TXT** com linhas: `Nome, Endereço, Número, Bairro, Cidade[, Profissão]`.
+- **Modo Cidade por cidade**: envie um arquivo **por cidade** cadastrada.
+- **Atenção**: as ações de atualização **substituem** a lista atual de jurados.
+- **Dica**: use o botão **💾 Backup** antes de atualizar. O CSV **UTF-8 c/ BOM** abre bem no Excel/Notepad.
+        """)
+        st.code(
+            "Exemplo TXT:\n"
+            "Ana Silva, Rua A, 123, Centro, Inhuma, Professora\n"
+            "Carlos Souza, Rua B, 45, Centro, Ipiranga\n",
+            language="text"
+        )
+
+    with st.expander("👥 5) Visualização de jurados"):
+        st.markdown("""
+- **Filtros**: por **Cidade** (inclui **Todas**), **Status** (Disponíveis, Impedidos, Sorteados),
+   e **Busca** por **nome**/**profissão**.
+- A lista mostra: **Nome (Profissão)**, endereço, cidade, **Sorteios** e **Status**.
+- **Impedir**: ao clicar, será solicitado o **motivo** (salvo no cadastro).  
+- **Disponibilizar**: remove o impedimento e limpa motivo/data.
+        """)
+
+    with st.expander("🎲 6) Sorteio"):
+        st.markdown("""
+- Regras:
+  - **25 titulares** (sendo **13** da **cidade do processo** + **12** de outras cidades, conforme disponibilidade).
+  - **5 suplentes**.
+  - Não participa quem estiver **impedido**.
+  - **Regra de consecutividade**: quem **participou do último sorteio** é marcado e **não entra** no sorteio seguinte.
+- Após sortear, os sorteados têm o contador **Sorteios** incrementado e são marcados como participantes do último sorteio.
+- Você pode **impedir** alguém sorteado informando o motivo.
+        """)
+
+    with st.expander("📄 7) Relatórios e Ata"):
+        st.markdown("""
+- **Relatório PDF**:
+  - Cabeçalho com **nome da Comarca**.
+  - Seções: **Sorteados**, **Impedidos** (com **motivo** e **data**), **Não sorteados**.
+  - Texto com **quebra automática** (não corta nomes).
+- **Ata (.docx)**:
+  - Gera documento a partir do modelo **MODELO ATA EXPORTAR.docx**.
+  - Lista **Titulares** e **Suplentes**. Mostra **Profissão** se informada.
+        """)
+
+    with st.expander("💾 8) Backup (Exportar dados)"):
+        st.markdown("""
+- Baixe a lista atual de jurados em **CSV (UTF-8 c/ BOM)** ou **Excel (.xlsx)**.
+- **Excel** é a opção mais robusta (evita problemas de acentuação).
+- Dica: para CSV, o Excel abre melhor arquivos com **;** como separador e **UTF-8 c/ BOM**.
+        """)
+
+    with st.expander("☁️ 9) Sobre o banco de dados no deploy"):
+        st.markdown("""
+- Em **deploy** (Streamlit Cloud), o arquivo SQLite local (**jurados.db**) pode ser **volátil**.
+- Para persistência real, use um **PostgreSQL gerenciado** (ex.: Supabase/Neon) via `st.secrets["db"]["url"]`.
+- Localmente continua funcionando com **SQLite** (informações do desenvolvedor).
+        """)
+
+    with st.expander("🧰 10) Solução de problemas (FAQ)"):
+        st.markdown("""
+- **Planilha Excel não reconhece colunas**: garanta que a **linha 1** seja o **cabeçalho** e que as colunas tenham nomes esperados
+  (sinônimos já são aceitos: *Endereço/Endereco, Número/Nº, Cidade/Município, Profissão/Cargo/Ocupação*).
+- **Acentos quebrados no CSV**: baixe o **CSV UTF-8 c/ BOM** ou use o **Excel (.xlsx)**.
+- **Nomes cortados no PDF**: já há **quebra automática**; se ainda cortar, reduza `linha_altura` em `gerar_relatorio.py`.
+- **Não há jurados suficientes**: importe mais jurados ou **disponibilize** quem foi impedido por engano.
+- **Ata não gera**: confirme que o arquivo **MODELO ATA EXPORTAR.docx** está na **raiz** do projeto.
+        """)
+
+    st.markdown("---")
+    # st.caption("Duvidas, sugestões e suporte: Dione de Oliveira (89) 99974-4547.")
