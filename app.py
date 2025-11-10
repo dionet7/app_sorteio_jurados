@@ -66,9 +66,9 @@ add_footer_suporte()
 
 # ==== LOGIN SIMPLES COM HASHING DE SENHA ====
 usuarios_validos = {
-    "admin": hashlib.sha256("1234".encode()).hexdigest(),
-    "usuario1": hashlib.sha256("senha1".encode()).hexdigest(),
-    "usuario2": hashlib.sha256("senha2".encode()).hexdigest(),
+    "admin": hashlib.sha256("Admin2026".encode()).hexdigest(),
+    "usuario1": hashlib.sha256("*senha1".encode()).hexdigest(),
+    "usuario2": hashlib.sha256("*senha2".encode()).hexdigest(),
 }
 
 if 'autenticado' not in st.session_state:
@@ -549,7 +549,14 @@ with tabs[3]:
 
         arquivos_por_cidade = {}
         for cidade in cidades:
-            arquivos_por_cidade[cidade] = st.file_uploader(f"Arquivo de jurados de {cidade}", type=[tipo_arquivo.split()[0].lower()], key=f"{cidade}_file")
+            # arquivos_por_cidade[cidade] = st.file_uploader(f"Arquivo de jurados de {cidade}", type=[tipo_arquivo.split()[0].lower()], key=f"{cidade}_file")
+            extensao = "xlsx" if tipo_arquivo.startswith("Excel") else "txt"
+            arquivos_por_cidade[cidade] = st.file_uploader(
+                f"Arquivo de jurados de {cidade}",
+                type=[extensao],
+                key=f"{cidade}_file"
+            )
+
 
         if all(arquivos_por_cidade.values()) and st.button("🔄 Atualizar Lista Cidade por Cidade"):
             conteudos = []
